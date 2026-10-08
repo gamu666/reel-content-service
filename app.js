@@ -29,14 +29,24 @@ function select(index) {
   category.textContent = reel.category;
   counter.textContent = `${String(active + 1).padStart(2, '0')} / ${String(reels.length).padStart(2, '0')}`;
   [...strip.children].forEach((button, i) => button.classList.toggle('is-active', i === active));
-  strip.children[active].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  // Scroll only the thumbnail strip; never its iframe or parent page.
+  const thumbnail = strip.children[active];
+  const stripBounds = strip.getBoundingClientRect();
+  const thumbnailBounds = thumbnail.getBoundingClientRect();
+  const scale = stripBounds.width / strip.offsetWidth || 1;
+  strip.scrollTo({
+    left: strip.scrollLeft + (thumbnailBounds.left - stripBounds.left) / scale
+      - (strip.clientWidth - thumbnail.offsetWidth) / 2,
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  });
   player.play().catch(() => {});
 }
 
 document.querySelector('.arrow--prev').addEventListener('click', () => select(active - 1));
 document.querySelector('.arrow--next').addEventListener('click', () => select(active + 1));
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'ArrowLeft') select(active - 1);
-  if (event.key === 'ArrowRight') select(active + 1);
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+  event.preventDefault();
+  select(active + (event.key === 'ArrowRight' ? 1 : -1));
 });
 select(0);
